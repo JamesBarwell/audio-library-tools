@@ -3,10 +3,25 @@
 SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 
-dir=$1
+dir=$(readlink -f $1)
+status=0
 
-cd $dir
+if [[ ! -d "$dir" ]]; then
+    echo "Directory not found"
+    exit 1
+fi
 
-md5sum * > ./checksum.md5
+for subdir in $(find "$dir" -mindepth 1 -type d)
+do
+    # md5sum must run from directory to keep filenames relative to that directory
+    cd $subdir
+    md5sum * > ./checksum.md5
+    if [ "$?" -ne "0" ]; then
+        status=1
+        echo 'Failure in ' $(pwd)
+    fi
+done
 
 IFS=$SAVEIFS
+
+exit $status
