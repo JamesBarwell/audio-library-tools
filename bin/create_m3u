@@ -1,0 +1,20 @@
+#!/bin/bash
+
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+
+dir=$(readlink -f $1)
+
+album_name=$(basename $dir)
+m3u_path="$dir/$album_name.m3u8"
+
+echo "Creating m3u at $m3u_path"
+
+echo "#EXTM3U" >> $m3u_path
+
+for filename in "$dir"/*.ogg
+do
+    echo "${filename##*/}" >> $m3u_path
+done
+
+IFS=$SAVEIFS
