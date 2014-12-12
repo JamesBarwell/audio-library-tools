@@ -1,33 +1,34 @@
 #!/bin/bash
 
+set -e
+
 SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 
-album_path=$(readlink -f $1)
+dir=$(readlink -f $1)
 output=$(readlink -f $2)
-status=0
 
-if [[ ! -d "$album_path" ]]; then
+if [ ! -d "$dir" ] || [ ! -d "$output" ]; then
     echo "Directory not found"
     exit 1
 fi
 
-output_path="$output/${album_path##*/}"
-echo 'Make dir at' $output_path
-mkdir "$output_path"
+output_path="$output/${dir##*/}"
+echo 'Creating directory at' $output_path
+mkdir -p "$output_path"
 
-for flac_path in ${album_path}/*flac;
+flacs=$(find $dir -type f -name "*.flac" | sort --numeric-sort)
+
+for flac_path in $flacs
 do
     flac_name=${flac_path##*/}
     ogg_name="${flac_name%flac}ogg"
     output_ogg_path="$output_path/$ogg_name"
 
     echo "Converting $flac_path to $output_ogg_path"
-    sox $flac_path $output_ogg_path
+    sox --show-progress $flac_path $output_ogg_path
 done
-
-exec ./create_m3u $output_path
 
 IFS=$SAVEIFS
 
-exit $status
+exit 0

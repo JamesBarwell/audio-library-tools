@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -e
+
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+
+dir=$(readlink -f $1)
+
+if [ ! -d "$dir" ]; then
+    echo "Directory not found"
+    exit 1
+fi
+
+# md5sum must run from directory to keep filenames relative to that directory
+pushd $dir
+echo creating checksums
+md5sum --binary *.flac *.cue *.log > ./checksum.md5
+popd
+
+IFS=$SAVEIFS
+
+exit 0

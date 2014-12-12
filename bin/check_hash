@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -e
+
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+
+dir=$(readlink -f $1)
+
+if [ ! -d "$dir" ]; then
+    echo "Directory not found"
+    exit 1
+fi
+
+pushd $dir
+md5sum --check --status --warn --strict ./checksum.md5
+if [ "$?" -ne "0" ]; then
+    exit 1
+fi
+
+IFS=$SAVEIFS
+
+exit 0

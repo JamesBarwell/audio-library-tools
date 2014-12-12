@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# EAC log files are UTF-16
+
+find flac -name '*.log' -print0 | xargs -0 iconv -f UTF-16 -t UTF-8 | grep 'Track quality' | cut -c20- | grep -Ev "^100.0|99.9"

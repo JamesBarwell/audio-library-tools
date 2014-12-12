@@ -1,20 +1,25 @@
 #!/bin/bash
 
+set -e
+
 SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 
 dir=$(readlink -f $1)
+filetype=${2:-flac}
+name=$(basename $dir)
+m3u_path="$dir/$name.m3u8"
 
-album_name=$(basename $dir)
-m3u_path="$dir/$album_name.m3u8"
-
-echo "Creating m3u at $m3u_path"
+rm -f $m3u_path
+echo "Creating m3u at: $m3u_path"
 
 echo "#EXTM3U" >> $m3u_path
 
-for filename in "$dir"/*.ogg
-do
-    echo "${filename##*/}" >> $m3u_path
-done
+find $dir -type f -name "*.$filetype" -printf '%f\n' >> $m3u_path
+
+#for filename in "$dir"/*.flac
+#do
+#    echo "${filename##*/}" >> $m3u_path
+#done
 
 IFS=$SAVEIFS
