@@ -6,6 +6,7 @@ SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 
 dir=$(readlink -f $1)
+hashfilename=${2:-checksum.md5}
 
 if [ ! -d "$dir" ]; then
     echo "Directory not found"
@@ -13,7 +14,15 @@ if [ ! -d "$dir" ]; then
 fi
 
 pushd $dir
-md5sum --check --status --warn --strict ./checksum.md5
+
+if [ ! -f "$hashfilename" ]; then
+    echo "Hash file $hashfilename does not exist"
+    exit 1
+fi
+
+# Hashes are usually created on the same Windows system that was used to rip
+# the CD, so it needs converting into a sensible format for checking.
+cat ./$hashfilename | dos2unix | md5sum --check --status --warn --strict
 if [ "$?" -ne "0" ]; then
     exit 1
 fi
