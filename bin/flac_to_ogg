@@ -7,6 +7,9 @@ IFS=$(echo -en "\n\b")
 
 dir=$(readlink -f $1)
 output=$(readlink -f $2)
+# Most users agree -q 5 achieves transparency, if the source is the original or
+# lossless: http://wiki.hydrogenaud.io/index.php?title=Recommended_Ogg_Vorbis
+quality=${3:-5}
 
 if [ ! -d "$dir" ] || [ ! -d "$output" ]; then
     echo "Directory not found"
@@ -26,7 +29,8 @@ do
     output_ogg_path="$output_path/$ogg_name"
 
     echo "Converting $flac_path to $output_ogg_path"
-    sox --show-progress $flac_path $output_ogg_path
+    flac --stdout --silent --decode $flac_path \
+        | oggenc - --quality $quality --output $output_ogg_path
 done
 
 IFS=$SAVEIFS

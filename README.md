@@ -25,6 +25,8 @@ I use the scripts included in this repository to transcode from the lossless FLA
 ## Script dependencies
 
 * [sox](http://sox.sourceforge.net/) for transcoding.
+* flac
+* oggenc (vorbis-tools package)
 
 ## Licence
 
