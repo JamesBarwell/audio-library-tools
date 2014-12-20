@@ -28,9 +28,24 @@ do
     ogg_name="${flac_name%flac}ogg"
     output_ogg_path="$output_path/$ogg_name"
 
+    artist=$(metaflac "$flac_path" --show-tag=ARTIST | sed s/.*=//g)
+    title=$(metaflac "$flac_path" --show-tag=TITLE | sed s/.*=//g)
+    album=$(metaflac "$flac_path" --show-tag=ALBUM | sed s/.*=//g)
+    genre=$(metaflac "$flac_path" --show-tag=GENRE | sed s/.*=//g)
+    tracknumber=$(metaflac "$flac_path" --show-tag=TRACKNUMBER | sed s/.*=//g)
+    date=$(metaflac "$flac_path" --show-tag=DATE | sed s/.*=//g)
+
     echo "Converting $flac_path to $output_ogg_path"
     flac --stdout --silent --decode $flac_path \
-        | oggenc - --quality $quality --output $output_ogg_path
+        | oggenc - \
+        --quality $quality \
+        --output $output_ogg_path \
+        --artist $artist \
+        --album $album \
+        --genre $genre \
+        --date $date \
+        --tracknum $tracknumber \
+        --title $title
 done
 
 IFS=$SAVEIFS
