@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -e
+
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+
+dir=$(readlink -f $1)
+output=$(readlink -f $2)
+quality=${3:-2}
+
+if [ ! -d "$dir" ] || [ ! -d "$output" ]; then
+    echo "Directory not found"
+    exit 1
+fi
+
+output_path="$output/${dir##*/}"
+echo 'Creating directory at' $output_path
+mkdir -p "$output_path"
+
+flacs=$(find $dir -type f -name "*.flac" | sort --numeric-sort)
+
+for flac_path in $flacs
+do
+    flac_name=${flac_path##*/}
+    mp3_name="${flac_name%flac}mp3"
+    output_mp3_path="$output_path/$mp3_name"
+
+    artist=$(metaflac "$flac_path" --show-tag=ARTIST | sed s/.*=//g)
+    title=$(metaflac "$flac_path" --show-tag=TITLE | sed s/.*=//g)
+    album=$(metaflac "$flac_path" --show-tag=ALBUM | sed s/.*=//g)
+    genre=$(metaflac "$flac_path" --show-tag=GENRE | sed s/.*=//g)
+    tracknumber=$(metaflac "$flac_path" --show-tag=TRACKNUMBER | sed s/.*=//g)
+    date=$(metaflac "$flac_path" --show-tag=DATE | sed s/.*=//g)
+
+    echo "Converting $flac_path to $output_mp3_path"
+    flac --stdout --silent --decode $flac_path \
+        | lame -V $quality --vbr-new - "$output_mp3_path"
+    id3v2 -t "$title" -T "$tracknumber" -a "$artist" -A "$album" -g "$genre" -y "$date" "$output_mp3_path"
+done
+
+IFS=$SAVEIFS
+
+exit 0
