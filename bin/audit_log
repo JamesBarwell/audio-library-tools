@@ -2,4 +2,25 @@
 
 # EAC log files are UTF-16
 
-find flac -name '*.log' -print0 | xargs -0 iconv -f UTF-16 -t UTF-8 | grep 'Track quality' | cut -c20- | grep -Ev "^100.0|99.9"
+set -e
+
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+
+dir=$1
+quality=$2
+
+for log in $(find $dir -name '*.log'); do
+    echo $log
+    tracks=$(iconv -f UTF-16 -t UTF-8 $log | grep 'Track quality')
+    tracknumber=1
+    for track in $tracks; do
+        echo $tracknumber $(echo $track | awk -v quality=$quality '{print $3 < quality}')
+        (( tracknumber++ ))
+    done
+
+done
+
+IFS=$SAVEIFS
+
+exit 0
