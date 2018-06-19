@@ -5,21 +5,37 @@ set -e
 SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 
-dir=$(readlink -f $1)
-filetype=${2:-flac}
-name=$(basename $dir)
-m3u_path="$dir/$name.m3u8"
+print_usage() {
+    echo "create_m3u: creates m3u playlist of a specified filetype in a directory"
+    echo ""
+    echo "  How to use:"
+    echo "  create_m3u <input_directory> [filetype]"
+}
 
-rm -f $m3u_path
-echo "Creating m3u at: $m3u_path"
+INPUT_DIR=$(readlink -f $1)
+FILETYPE=${2:-flac}
 
-echo "#EXTM3U" >> $m3u_path
+M3U_NAME=$(basename ${INPUT_DIR})
+M3U_PATH="${INPUT_DIR}/${M3U_NAME}.m3u8"
 
-find $dir -type f -name "*.$filetype" -printf '%f\n' >> $m3u_path
+if [ -f "${M3U_PATH}" ]; then
+    rm -f ${M3U_PATH}
+fi
 
-#for filename in "$dir"/*.flac
-#do
-#    echo "${filename##*/}" >> $m3u_path
-#done
+echo "Creating m3u at: ${M3U_PATH}"
+
+touch ${M3U_PATH}
+echo '#EXTM3U' >> ${M3U_PATH}
+
+PLAYLIST_FILES=$(find ${INPUT_DIR} -type f -name "*.${FILETYPE}" -printf '%f\n' | sort)
+
+if [ -z "${PLAYLIST_FILES}" ]; then
+    echo "Error: could not find files of type: ${FILETYPE}"
+    exit 1
+fi
+
+for FILENAME in "${PLAYLIST_FILES}"; do
+    echo "${FILENAME}" >> ${M3U_PATH}
+done
 
 IFS=$SAVEIFS
