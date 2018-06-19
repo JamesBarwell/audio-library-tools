@@ -1,0 +1,54 @@
+#!/bin/bash
+
+set -e
+
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+
+print_usage() {
+    echo "wav_to_mp3: converts all WAV files in a directory to MP3, using LAME"
+    echo ""
+    echo "  How to use:"
+    echo "  wav_to_mp3 <input_directory> <output_directory> [lame-quality, default 2]"
+}
+
+INPUT_DIR_ARG=$1
+OUTPUT_DIR_ARG=$2
+LAME_QUALITY=${3:-2}
+
+if [ -z "${INPUT_DIR_ARG}" ] || [ -z "${OUTPUT_DIR_ARG}" ]; then
+    print_usage
+    exit 1
+fi
+
+INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+OUTPUT_DIR=$(readlink -f "${OUTPUT_DIR_ARG}")
+
+if [ ! -d "${INPUT_DIR}" ]; then
+    echo "Input directory not found at: ${INPUT_DIR}"
+    print_usage
+    exit 1
+fi
+
+if [ ! -d "${OUTPUT_DIR}" ]; then
+    echo "Output directory not found at: ${OUTPUT_DIR}"
+    print_usage
+    exit 1
+fi
+
+INPUT_FILES=$(find ${INPUT_DIR} -type f -name "*.wav" | sort --numeric-sort)
+
+echo "Using lame quality setting: ${LAME_QUALITY}"
+
+for INPUT_FILE_PATH in ${INPUT_FILES}; do
+    INPUT_FILENAME=${INPUT_FILE_PATH##*/}
+    OUTPUT_FILENAME="${INPUT_FILENAME%wav}mp3"
+    OUTPUT_FILE_PATH="${OUTPUT_DIR}/${OUTPUT_FILENAME}"
+
+    echo "Converting ${INPUT_FILE_PATH} to ${OUTPUT_FILE_PATH}"
+    lame --silent -V $LAME_QUALITY --vbr-new "${INPUT_FILE_PATH}" "${OUTPUT_FILE_PATH}"
+done
+
+IFS=$SAVEIFS
+
+exit 0
