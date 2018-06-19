@@ -2,7 +2,7 @@
 
 set -e
 
-SAVEIFS=$IFS
+SAVEIFS=${IFS}
 IFS=$(echo -en "\n\b")
 
 print_usage() {
@@ -38,4 +38,4 @@ for FILENAME in "${PLAYLIST_FILES}"; do
     echo "${FILENAME}" >> ${M3U_PATH}
 done
 
-IFS=$SAVEIFS
+IFS=${SAVEIFS}

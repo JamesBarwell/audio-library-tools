@@ -2,31 +2,45 @@
 
 set -e
 
-SAVEIFS=$IFS
+SAVEIFS=${IFS}
 IFS=$(echo -en "\n\b")
 
-dir=$(readlink -f $1)
-hashfilename=${2:-checksum.md5}
+print_usage() {
+    echo "check_hash: validate all files in a directory against the MD5 hash"
+    echo ""
+    echo "  How to use:"
+    echo "  check_hash <input_directory> [hash_filename]"
+}
 
-if [ ! -d "$dir" ]; then
-    echo "Directory not found"
+
+INPUT_DIR_ARG=$1
+HASH_FILENAME=${2:-checksum.md5}
+
+if [ -z "${INPUT_DIR_ARG}" ]; then
+    print_usage
     exit 1
 fi
 
-pushd $dir
+INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
 
-if [ ! -f "$hashfilename" ]; then
-    echo "Hash file $hashfilename does not exist"
+if [ ! -d "${INPUT_DIR}" ]; then
+    echo "Input directory not found at: ${INPUT_DIR}"
+    print_usage
+    exit 1
+fi
+
+if [ ! -f "${HASH_FILENAME}" ]; then
+    echo "Could not find hash with name: ${HASH_FILENAME}"
+    print_usage
     exit 1
 fi
 
 # Hashes are usually created on the same Windows system that was used to rip
 # the CD, so it needs converting into a sensible format for checking.
-cat ./$hashfilename | dos2unix | md5sum --check --status --warn --strict
+cat ./${HASH_FILENAME} | dos2unix | md5sum --check --status --warn --strict
 if [ "$?" -ne "0" ]; then
+    echo "Error: hash did not match"
     exit 1
 fi
 
-IFS=$SAVEIFS
-
-exit 0
+IFS=${SAVEIFS}

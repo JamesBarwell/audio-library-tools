@@ -2,7 +2,7 @@
 
 set -e
 
-SAVEIFS=$IFS
+SAVEIFS=${IFS}
 IFS=$(echo -en "\n\b")
 
 print_usage() {
@@ -40,15 +40,13 @@ INPUT_FILES=$(find ${INPUT_DIR} -type f -name "*.wav" | sort --numeric-sort)
 
 echo "Using lame quality setting: ${LAME_QUALITY}"
 
-for INPUT_FILE_PATH in ${INPUT_FILES}; do
-    INPUT_FILENAME=${INPUT_FILE_PATH##*/}
+for INPUT_FILEPATH in ${INPUT_FILES}; do
+    INPUT_FILENAME=${INPUT_FILEPATH##*/}
     OUTPUT_FILENAME="${INPUT_FILENAME%wav}mp3"
-    OUTPUT_FILE_PATH="${OUTPUT_DIR}/${OUTPUT_FILENAME}"
+    OUTPUT_FILEPATH="${OUTPUT_DIR}/${OUTPUT_FILENAME}"
 
-    echo "Converting ${INPUT_FILE_PATH} to ${OUTPUT_FILE_PATH}"
-    lame --silent -V $LAME_QUALITY --vbr-new "${INPUT_FILE_PATH}" "${OUTPUT_FILE_PATH}"
+    echo "Converting ${INPUT_FILEPATH} to ${OUTPUT_FILEPATH}"
+    lame --silent -V $LAME_QUALITY --vbr-new "${INPUT_FILEPATH}" "${OUTPUT_FILEPATH}"
 done
 
-IFS=$SAVEIFS
-
-exit 0
+IFS=${SAVEIFS}

@@ -2,22 +2,35 @@
 
 set -e
 
-SAVEIFS=$IFS
+SAVEIFS=${IFS}
 IFS=$(echo -en "\n\b")
 
-dir=$(readlink -f $1)
+print_usage() {
+    echo "hash_directory: create an MD5 hash of all files in a directory"
+    echo ""
+    echo "  How to use:"
+    echo "  hash_directory <input_directory>"
+}
 
-if [ ! -d "$dir" ]; then
-    echo "Directory not found"
+INPUT_DIR_ARG=$1
+
+if [ -z "${INPUT_DIR_ARG}" ]; then
+    print_usage
+    exit 1
+fi
+
+INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+
+if [ ! -d "${INPUT_DIR}" ]; then
+    echo "Input directory not found at: ${INPUT_DIR}"
+    print_usage
     exit 1
 fi
 
 # md5sum must run from directory to keep filenames relative to that directory
-pushd $dir
-echo creating checksums
-md5sum --binary *.flac *.cue *.log > ./checksum.md5
+pushd ${INPUT_DIR}
+echo "Creating checksums for directory: ${INPUT_DIR}"
+md5sum --binary *.mp3 *.flac *.cue *.log > ./checksum.md5
 popd
 
-IFS=$SAVEIFS
-
-exit 0
+IFS=${SAVEIFS}

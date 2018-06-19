@@ -5,49 +5,64 @@ set -e
 SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 
-dir=$(readlink -f $1)
-output=$(readlink -f $2)
+print_usage() {
+    echo "flac_to_ogg: converts all FLAC files in a directory to OGG, using oggenv"
+    echo ""
+    echo "  How to use:"
+    echo "  flac_to_ogg <input_directory> <output_directory> [ogg-quality, default 5]"
+
+INPUT_DIR_ARG=$1
+OUTPUT_DIR_ARG=$2
+OGG_QUALITY=${3:-2}
+
 # Most users agree -q 5 achieves transparency, if the source is the original or
 # lossless: http://wiki.hydrogenaud.io/index.php?title=Recommended_Ogg_Vorbis
-quality=${3:-5}
 
-if [ ! -d "$dir" ] || [ ! -d "$output" ]; then
-    echo "Directory not found"
+if [ -z "${INPUT_DIR_ARG}" ] || [ -z "${OUTPUT_DIR_ARG}" ]; then
+    print_usage
     exit 1
 fi
 
-output_path="$output/${dir##*/}"
-echo 'Creating directory at' $output_path
-mkdir -p "$output_path"
+INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+OUTPUT_DIR=$(readlink -f "${OUTPUT_DIR_ARG}")
 
-flacs=$(find $dir -type f -name "*.flac" | sort --numeric-sort)
+if [ ! -d "${INPUT_DIR}" ]; then
+    echo "Input directory not found at: ${INPUT_DIR}"
+    print_usage
+    exit 1
+fi
 
-for flac_path in $flacs
-do
-    flac_name=${flac_path##*/}
-    ogg_name="${flac_name%flac}ogg"
-    output_ogg_path="$output_path/$ogg_name"
+if [ ! -d "${OUTPUT_DIR}" ]; then
+    echo "Output directory not found at: ${OUTPUT_DIR}"
+    print_usage
+    exit 1
+fi
 
-    artist=$(metaflac "$flac_path" --show-tag=ARTIST | sed s/.*=//g)
-    title=$(metaflac "$flac_path" --show-tag=TITLE | sed s/.*=//g)
-    album=$(metaflac "$flac_path" --show-tag=ALBUM | sed s/.*=//g)
-    genre=$(metaflac "$flac_path" --show-tag=GENRE | sed s/.*=//g)
-    tracknumber=$(metaflac "$flac_path" --show-tag=TRACKNUMBER | sed s/.*=//g)
-    date=$(metaflac "$flac_path" --show-tag=DATE | sed s/.*=//g)
+INPUT_FILES=$(find ${INPUT_DIR} -type f -name "*.flac" | sort --numeric-sort)
 
-    echo "Converting $flac_path to $output_ogg_path"
-    flac --stdout --silent --decode $flac_path \
+for INPUT_FILEPATH in ${INPUT_FILES}; do
+    INPUT_FILENAME=${INPUT_FILEPATH##*/}
+    OUTPUT_FILENAME="${INPUT_FILENAME%wav}mp3"
+    OUTPUT_FILEPATH="${OUTPUT_DIR}/${OUTPUT_FILENAME}"
+
+    TRACK_ARTIST=$(metaflac "${INPUT_FILEPATH}" --show-tag=ARTIST | sed s/.*=//g)
+    TRACK_TITLE=$(metaflac "${INPUT_FILEPATH}" --show-tag=TITLE | sed s/.*=//g)
+    TRACK_ALBUM=$(metaflac "${INPUT_FILEPATH}" --show-tag=ALBUM | sed s/.*=//g)
+    TRACK_GENRE=$(metaflac "${INPUT_FILEPATH}" --show-tag=GENRE | sed s/.*=//g)
+    TRACK_TRACKNUMBER=$(metaflac "${INPUT_FILEPATH}" --show-tag=TRACKNUMBER | sed s/.*=//g)
+    TRACK_DATE=$(metaflac "${INPUT_FILEPATH}" --show-tag=DATE | sed s/.*=//g)
+
+    echo "Converting ${INPUT_FILEPATH} to ${OUTPUT_FILEPATH}"
+    flac --stdout --silent --decode ${INPUT_FILEPATH} \
         | oggenc - \
-        --quality $quality \
-        --output $output_ogg_path \
-        --artist $artist \
-        --album $album \
-        --genre $genre \
-        --date $date \
-        --tracknum $tracknumber \
-        --title $title
+        --quality ${OGG_QUALITY} \
+        --output ${OUTPUT_FILEPATH} \
+        --artist ${TRACK_ARTIST} \
+        --album ${TRACK_ALBUM} \
+        --genre ${TRACK_GENRE} \
+        --date ${TRACK_DATE} \
+        --tracknum ${TRACK_TRACKNUMBER} \
+        --title ${TRACK_TITLE}
 done
 
-IFS=$SAVEIFS
-
-exit 0
+IFS=${SAVEIFS}
