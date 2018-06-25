@@ -1,0 +1,50 @@
+#!/bin/bash
+
+set -e
+
+SAVEIFS=${IFS}
+IFS=$(echo -en "\n\b")
+
+print_usage() {
+    echo "batch_run: run any of the other scripts in batch"
+    echo ""
+    echo "  How to use:"
+    echo "  batch_run <batch_directory> <script_name> [script_arguments]"
+    echo ""
+    echo "Finds all sub-directories within the batch_directory, then runs the"
+    echo "named script, passing in the sub-directory as the first argument."
+    echo "Additional arguments can be passed after the script_name."
+    echo ""
+}
+
+BATCH_DIR_ARG=$1
+SCRIPT_PATH=$2
+
+if [ -z "${BATCH_DIR_ARG}" ] || [ -z "${SCRIPT_PATH}" ]; then
+    print_usage
+    exit 1
+fi
+
+shift
+shift
+SCRIPT_ARGS=$@
+
+BATCH_DIR=$(readlink -f "${BATCH_DIR_ARG}")
+
+if [ ! -d "${BATCH_DIR}" ]; then
+    echo "Batch directory not found at: ${BATCH_DIR}"
+    print_usage
+    exit 1
+fi
+
+if [ ! -x "${SCRIPT_PATH}" ]; then
+    echo "Could not find executable script at: ${SCRIPT_PATH}"
+    print_usage
+    exit 1
+fi
+
+INPUT_DIRS=$(find ${BATCH_DIR} -mindepth 1 -maxdepth 1 -type d | sort --numeric-sort)
+
+for INPUT_DIR in ${INPUT_DIRS}; do
+    ${SCRIPT_PATH} ${INPUT_DIR} ${SCRIPT_ARGS}
+done
