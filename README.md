@@ -1,7 +1,7 @@
 audio-library-tools
 ===================
 
-My scripts and configuration to help organise my audio library.
+My scripts, configuration and notes to help organise my audio library.
 
 ## Audio CD backup process
 
@@ -17,6 +17,8 @@ My scripts and configuration to help organise my audio library.
 1. Backup
 
 ## Purpose and use
+
+My music library is mostly CD based. I continue to use CDs because they offer high-quality digital audio, actual ownership and often a connection to the source of artwork (e.g. many were bought directly from the artists).
 
 I archive my library using FLAC because it is a popular, free, open and lossless format. The ripping process is time-consuming and in the event of improving my speaker set up (or ears!), or more realistically if storage formats change in the future, I do not want to have to rip my audio CDs again. While FLAC suits my archival purposes nicely, it is not the most appropriate format for playback on all devices. For example, my portable music player has limited memory and relatively low quality headphone output, so low bitrate MP3 or Ogg Vorbis files prove more economical here.
 
@@ -35,15 +37,15 @@ I use the scripts included in this repository to transcode from the lossless FLA
 
 Anyone who cares to maintain a large digital audio library will have their own preferences about how it should be organised. These preferences can change over time, perhaps as a collection grows or new genres of music are explored. I have tried to come up with a set of principles to guide my decisions.
 
-1. An audio backup represents the thing it came from as closely as possible.
-  * e.g. if a track title has multiple spellings, use the spelling given on the medium being backed up.
-  * e.g. if an artist releases albums under multiple names each backup is given the artist name for that particular album, so that previously backed up albums do not require alteration.
-1. Different types of things are stored separately and do not have to be consistent.
-  * i.e. the formatting of digitally delivered files need not be modified in an attempt to make it consistent with a CD backup.
-1. Integrity, validity and quality of the backup is important.
+1. An audio backup represents the medium it came from as closely as possible.
+  * e.g. if a track title has multiple spellings on different albums, use the spelling given on the particular album being backed up.
+  * e.g. if an artist releases albums under multiple names, each backup is given the artist name for that particular album, so that previously backed up albums do not require alteration.
+2. Different types of things are stored separately and do not have to be consistent.
+  * i.e. the formatting of a backed-up LP, or digitally delivered files, need not be identical to a CD backup.
+3. Integrity, validity and quality of the backup is important.
   * i.e. backups should be made once at the best possible quality.
-  * i.e. naming things accurately and consistently (where possible) is worth doing.
-1. Backups should be flexible and future-proof.
+  * i.e. taking time to name things accurately and consistently is worth doing.
+4. Backups should be flexible and future-proof.
   * i.e. use open and lossless formats, and transcode to lesser formats on demand.
 
 The scripts are designed to work with my preferred file hierarchy, which looks like this:
@@ -71,6 +73,15 @@ audio
 │      ├── 01 Track Title.format
 │      └── 02 Track Title.format
 ```
+
+## Organisational strategies
+
+* avoid making changes to source or transcoded files. Instead, use symlinks and playlists, which are flexible, to deal with display preferences which may be particular to your tastes or the way your media player organises files.
+** e.g. if an artist has released multiple albums under different names, and you want to group them all by the latest name, create playlists under the latest name that reference the track files under the mixed artist naming.
+
+## Backup policy
+
+Backups are kept on two portable hard-drives, one of which must always be kept offline and in a separate physical location.
 
 ## Licence
 
