@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 SAVEIFS=${IFS}
 IFS=$(echo -en "\n\b")
 
@@ -9,38 +7,64 @@ print_usage() {
     echo "check_hash: validate all files in a directory against the MD5 hash"
     echo ""
     echo "  How to use:"
-    echo "  check_hash <input_directory> [hash_filename]"
+    echo "  check_hash <input_directory> [use_dos2unix]"
+    echo ""
+    echo "Set 'use_dos2unix' to 1 to pre-parse checksums through the dos2unix utility"
 }
 
+process_dir() {
+    DIR=$1
+    USE_DOS2UNIX=$2
 
-INPUT_DIR_ARG=$1
-HASH_FILENAME=${2:-checksum.md5}
+    pushd ${DIR}
 
-if [ -z "${INPUT_DIR_ARG}" ]; then
-    print_usage
-    exit 1
-fi
+    HASH_FILENAME=$(find ${DIR} -type f -name '*.md5')
 
-INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+    echo "Checking hash: ${HASH_FILENAME}"
 
-if [ ! -d "${INPUT_DIR}" ]; then
-    echo "Input directory not found at: ${INPUT_DIR}"
-    print_usage
-    exit 1
-fi
+    if [ "${USE_DOS2UNIX}" == 1 ]; then
+        cat ${HASH_FILENAME} | dos2unix | md5sum --check --status --warn --strict
+    else
+        cat ${HASH_FILENAME} | md5sum --check --status --warn --strict
+    fi
 
-if [ ! -f "${HASH_FILENAME}" ]; then
-    echo "Could not find hash with name: ${HASH_FILENAME}"
-    print_usage
-    exit 1
-fi
+    if [ "$?" -ne "0" ]; then
+        echo "Error: hash did not match"
+    fi
 
-# Hashes are usually created on the same Windows system that was used to rip
-# the CD, so it needs converting into a sensible format for checking.
-cat ./${HASH_FILENAME} | dos2unix | md5sum --check --status --warn --strict
-if [ "$?" -ne "0" ]; then
-    echo "Error: hash did not match"
-    exit 1
-fi
+    popd
+}
+
+main() {
+    INPUT_DIR_ARG=$1
+    USE_DOS2UNIX=$2
+
+    if [ -z "${INPUT_DIR_ARG}" ]; then
+        print_usage
+        exit 1
+    fi
+
+    INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+
+    if [ ! -d "${INPUT_DIR}" ]; then
+        echo "Input directory not found at: ${INPUT_DIR}"
+        print_usage
+        exit 1
+    fi
+
+    if [ "${USE_DOS2UNIX}" == 1 ]; then
+        which dos2unix
+        if [ $? != 0 ]; then
+            echo "Error: specified to use dos2unix, but dos2unix not on path"
+            exit 1
+        fi
+    fi
+
+    for DIR in $(find ${INPUT_DIR} -mindepth 1 -type d); do
+        process_dir ${DIR} ${USE_DOS2UNIX}
+    done
+}
+
+main $@
 
 IFS=${SAVEIFS}

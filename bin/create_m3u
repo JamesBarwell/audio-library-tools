@@ -12,30 +12,45 @@ print_usage() {
     echo "  create_m3u <input_directory> [filetype]"
 }
 
-INPUT_DIR=$(readlink -f $1)
-FILETYPE=${2:-flac}
+process_dir() {
+    DIR=$1
+    FILETYPE=$2
 
-M3U_NAME=$(basename ${INPUT_DIR})
-M3U_PATH="${INPUT_DIR}/${M3U_NAME}.m3u8"
+    M3U_NAME=$(basename ${DIR})
+    M3U_PATH="${DIR}/${M3U_NAME}.m3u8"
 
-if [ -f "${M3U_PATH}" ]; then
-    rm -f ${M3U_PATH}
-fi
+    if [ -f "${M3U_PATH}" ]; then
+        rm -f ${M3U_PATH}
+    fi
 
-echo "Creating m3u at: ${M3U_PATH}"
+    echo "Creating m3u at: ${M3U_PATH}"
 
-touch ${M3U_PATH}
-echo '#EXTM3U' >> ${M3U_PATH}
+    touch ${M3U_PATH}
+    echo '#EXTM3U' >> ${M3U_PATH}
 
-PLAYLIST_FILES=$(find ${INPUT_DIR} -type f -name "*.${FILETYPE}" -printf '%f\n' | sort)
+    PLAYLIST_FILES=$(find ${DIR} -type f -name "*.${FILETYPE}" -printf '%f\n' | sort)
 
-if [ -z "${PLAYLIST_FILES}" ]; then
-    echo "Error: could not find files of type: ${FILETYPE}"
-    exit 1
-fi
+    if [ -z "${PLAYLIST_FILES}" ]; then
+        echo "Error: could not find files of type: ${FILETYPE}"
+        exit 1
+    fi
 
-for FILENAME in "${PLAYLIST_FILES}"; do
-    echo "${FILENAME}" >> ${M3U_PATH}
-done
+    for FILENAME in "${PLAYLIST_FILES}"; do
+        echo "${FILENAME}" >> ${M3U_PATH}
+    done
+
+    echo "Completed directory: ${DIR}"
+}
+
+main() {
+    INPUT_DIR=$(readlink -f $1)
+    FILETYPE=${2:-flac}
+
+    for DIR in $(find ${INPUT_DIR} -mindepth 1 -type d); do
+        process_dir ${DIR} ${FILETYPE}
+    done
+}
+
+main $@
 
 IFS=${SAVEIFS}
