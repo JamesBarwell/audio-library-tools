@@ -12,41 +12,60 @@ print_usage() {
     echo "  wav_to_mp3 <input_directory> <output_directory> [lame-quality, default 2]"
 }
 
-INPUT_DIR_ARG=$1
-OUTPUT_DIR_ARG=$2
-LAME_QUALITY=${3:-2}
+process_dir() {
+    DIR=$1
+    OUTPUT_BASEDIR=$2
+    LAME_QUALITY=$3
 
-if [ -z "${INPUT_DIR_ARG}" ] || [ -z "${OUTPUT_DIR_ARG}" ]; then
-    print_usage
-    exit 1
-fi
+    INPUT_FILES=$(find ${DIR} -type f -name "*.wav" | sort --numeric-sort)
+    OUTPUT_DIR_NAME=$(basename ${DIR})
+    OUTPUT_DIR_PATH=${OUTPUT_BASEDIR}/${OUTPUT_DIR_NAME}
 
-INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
-OUTPUT_DIR=$(readlink -f "${OUTPUT_DIR_ARG}")
+    echo "Creating output directory: ${OUTPUT_DIR_PATH}"
+    mkdir -p ${OUTPUT_DIR_PATH}
 
-if [ ! -d "${INPUT_DIR}" ]; then
-    echo "Input directory not found at: ${INPUT_DIR}"
-    print_usage
-    exit 1
-fi
+    echo "Using lame quality setting: ${LAME_QUALITY}"
 
-if [ ! -d "${OUTPUT_DIR}" ]; then
-    echo "Output directory not found at: ${OUTPUT_DIR}"
-    print_usage
-    exit 1
-fi
+    for INPUT_FILEPATH in ${INPUT_FILES}; do
+        INPUT_FILENAME=${INPUT_FILEPATH##*/}
+        OUTPUT_FILENAME="${INPUT_FILENAME%wav}mp3"
+        OUTPUT_FILEPATH="${OUTPUT_DIR_PATH}/${OUTPUT_FILENAME}"
 
-INPUT_FILES=$(find ${INPUT_DIR} -type f -name "*.wav" | sort --numeric-sort)
+        echo "Converting ${INPUT_FILEPATH} to ${OUTPUT_FILEPATH}"
+        lame --silent -V ${LAME_QUALITY} --vbr-new "${INPUT_FILEPATH}" "${OUTPUT_FILEPATH}"
+    done
+}
 
-echo "Using lame quality setting: ${LAME_QUALITY}"
+main() {
+    INPUT_DIR_ARG=$1
+    OUTPUT_DIR_ARG=$2
+    LAME_QUALITY=${3:-2}
 
-for INPUT_FILEPATH in ${INPUT_FILES}; do
-    INPUT_FILENAME=${INPUT_FILEPATH##*/}
-    OUTPUT_FILENAME="${INPUT_FILENAME%wav}mp3"
-    OUTPUT_FILEPATH="${OUTPUT_DIR}/${OUTPUT_FILENAME}"
+    if [ -z "${INPUT_DIR_ARG}" ] || [ -z "${OUTPUT_DIR_ARG}" ]; then
+        print_usage
+        exit 1
+    fi
 
-    echo "Converting ${INPUT_FILEPATH} to ${OUTPUT_FILEPATH}"
-    lame --silent -V $LAME_QUALITY --vbr-new "${INPUT_FILEPATH}" "${OUTPUT_FILEPATH}"
-done
+    INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+    OUTPUT_DIR=$(readlink -f "${OUTPUT_DIR_ARG}")
+
+    if [ ! -d "${INPUT_DIR}" ]; then
+        echo "Input directory not found at: ${INPUT_DIR}"
+        print_usage
+        exit 1
+    fi
+
+    if [ ! -d "${OUTPUT_DIR}" ]; then
+        echo "Output directory not found at: ${OUTPUT_DIR}"
+        print_usage
+        exit 1
+    fi
+
+    for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
+        process_dir ${DIR} ${OUTPUT_DIR} ${LAME_QUALITY}
+    done
+}
+
+main $@
 
 IFS=${SAVEIFS}

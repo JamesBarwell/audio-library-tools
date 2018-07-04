@@ -10,59 +10,77 @@ print_usage() {
     echo ""
     echo "  How to use:"
     echo "  flac_to_ogg <input_directory> <output_directory> [ogg-quality, default 5]"
+}
 
-INPUT_DIR_ARG=$1
-OUTPUT_DIR_ARG=$2
-OGG_QUALITY=${3:-2}
 
-# Most users agree -q 5 achieves transparency, if the source is the original or
-# lossless: http://wiki.hydrogenaud.io/index.php?title=Recommended_Ogg_Vorbis
+process_dir() {
+    DIR=$1
+    OUTPUT_BASEDIR=$2
+    OGG_QUALITY=$3
 
-if [ -z "${INPUT_DIR_ARG}" ] || [ -z "${OUTPUT_DIR_ARG}" ]; then
-    print_usage
-    exit 1
-fi
+    INPUT_FILES=$(find ${DIR} -type f -name "*.flac" | sort --numeric-sort)
+    OUTPUT_DIR_NAME=$(basename ${DIR})
+    OUTPUT_DIR_PATH=${OUTPUT_BASEDIR}/${OUTPUT_DIR_NAME}
 
-INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
-OUTPUT_DIR=$(readlink -f "${OUTPUT_DIR_ARG}")
+    for INPUT_FILEPATH in ${INPUT_FILES}; do
+        INPUT_FILENAME=${INPUT_FILEPATH##*/}
+        OUTPUT_FILENAME="${INPUT_FILENAME%wav}mp3"
+        OUTPUT_FILEPATH="${OUTPUT_DIR_PATH}/${OUTPUT_FILENAME}"
 
-if [ ! -d "${INPUT_DIR}" ]; then
-    echo "Input directory not found at: ${INPUT_DIR}"
-    print_usage
-    exit 1
-fi
+        TRACK_ARTIST=$(metaflac "${INPUT_FILEPATH}" --show-tag=ARTIST | sed s/.*=//g)
+        TRACK_TITLE=$(metaflac "${INPUT_FILEPATH}" --show-tag=TITLE | sed s/.*=//g)
+        TRACK_ALBUM=$(metaflac "${INPUT_FILEPATH}" --show-tag=ALBUM | sed s/.*=//g)
+        TRACK_GENRE=$(metaflac "${INPUT_FILEPATH}" --show-tag=GENRE | sed s/.*=//g)
+        TRACK_TRACKNUMBER=$(metaflac "${INPUT_FILEPATH}" --show-tag=TRACKNUMBER | sed s/.*=//g)
+        TRACK_DATE=$(metaflac "${INPUT_FILEPATH}" --show-tag=DATE | sed s/.*=//g)
 
-if [ ! -d "${OUTPUT_DIR}" ]; then
-    echo "Output directory not found at: ${OUTPUT_DIR}"
-    print_usage
-    exit 1
-fi
+        echo "Converting ${INPUT_FILEPATH} to ${OUTPUT_FILEPATH}"
+        flac --stdout --silent --decode ${INPUT_FILEPATH} \
+            | oggenc - \
+            --quality ${OGG_QUALITY} \
+            --output ${OUTPUT_FILEPATH} \
+            --artist ${TRACK_ARTIST} \
+            --album ${TRACK_ALBUM} \
+            --genre ${TRACK_GENRE} \
+            --date ${TRACK_DATE} \
+            --tracknum ${TRACK_TRACKNUMBER} \
+            --title ${TRACK_TITLE}
+    done
+}
 
-INPUT_FILES=$(find ${INPUT_DIR} -type f -name "*.flac" | sort --numeric-sort)
+main() {
+    INPUT_DIR_ARG=$1
+    OUTPUT_DIR_ARG=$2
+    OGG_QUALITY=${3:-5}
 
-for INPUT_FILEPATH in ${INPUT_FILES}; do
-    INPUT_FILENAME=${INPUT_FILEPATH##*/}
-    OUTPUT_FILENAME="${INPUT_FILENAME%wav}mp3"
-    OUTPUT_FILEPATH="${OUTPUT_DIR}/${OUTPUT_FILENAME}"
+    # Most users agree -q 5 achieves transparency
+    # See: http://wiki.hydrogenaud.io/index.php?title=Recommended_Ogg_Vorbis
 
-    TRACK_ARTIST=$(metaflac "${INPUT_FILEPATH}" --show-tag=ARTIST | sed s/.*=//g)
-    TRACK_TITLE=$(metaflac "${INPUT_FILEPATH}" --show-tag=TITLE | sed s/.*=//g)
-    TRACK_ALBUM=$(metaflac "${INPUT_FILEPATH}" --show-tag=ALBUM | sed s/.*=//g)
-    TRACK_GENRE=$(metaflac "${INPUT_FILEPATH}" --show-tag=GENRE | sed s/.*=//g)
-    TRACK_TRACKNUMBER=$(metaflac "${INPUT_FILEPATH}" --show-tag=TRACKNUMBER | sed s/.*=//g)
-    TRACK_DATE=$(metaflac "${INPUT_FILEPATH}" --show-tag=DATE | sed s/.*=//g)
+    if [ -z "${INPUT_DIR_ARG}" ] || [ -z "${OUTPUT_DIR_ARG}" ]; then
+        print_usage
+        exit 1
+    fi
 
-    echo "Converting ${INPUT_FILEPATH} to ${OUTPUT_FILEPATH}"
-    flac --stdout --silent --decode ${INPUT_FILEPATH} \
-        | oggenc - \
-        --quality ${OGG_QUALITY} \
-        --output ${OUTPUT_FILEPATH} \
-        --artist ${TRACK_ARTIST} \
-        --album ${TRACK_ALBUM} \
-        --genre ${TRACK_GENRE} \
-        --date ${TRACK_DATE} \
-        --tracknum ${TRACK_TRACKNUMBER} \
-        --title ${TRACK_TITLE}
-done
+    INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+    OUTPUT_DIR=$(readlink -f "${OUTPUT_DIR_ARG}")
+
+    if [ ! -d "${INPUT_DIR}" ]; then
+        echo "Input directory not found at: ${INPUT_DIR}"
+        print_usage
+        exit 1
+    fi
+
+    if [ ! -d "${OUTPUT_DIR}" ]; then
+        echo "Output directory not found at: ${OUTPUT_DIR}"
+        print_usage
+        exit 1
+    fi
+
+    for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
+        process_dir ${DIR} ${OUTPUT_DIR} ${OGG_QUALITY}
+    done
+}
+
+main $@
 
 IFS=${SAVEIFS}
