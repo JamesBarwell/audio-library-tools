@@ -43,7 +43,21 @@ process_dir() {
 }
 
 main() {
-    INPUT_DIR=$(readlink -f $1)
+    INPUT_DIR_ARG=$1
+
+    if [ -z "${INPUT_DIR_ARG}" ]; then
+        print_usage
+        exit 1
+    fi
+
+    INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+
+    if [ ! -d "${INPUT_DIR}" ]; then
+        echo "Input directory not found at: ${INPUT_DIR}"
+        print_usage
+        exit 1
+    fi
+
     FILETYPE=${2:-flac}
 
     for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
