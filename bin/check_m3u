@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e
+
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+
+print_usage() {
+    echo "check_m3u: check that m3u file is present"
+    echo ""
+    echo "  How to use:"
+    echo "  check_cue <input_directory>"
+}
+
+process_dir() {
+    DIR=$1
+
+    CUE_COUNT=$(find ${DIR} -type f -name '*.m3u' | wc -l)
+
+    if [ "${CUE_COUNT}" -le 1 ]; then
+        echo "No M3U file(s) found in directory: ${DIR}"
+    fi
+}
+
+main() {
+    INPUT_DIR=$(readlink -f $1)
+
+    for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
+        process_dir ${DIR}
+    done
+}
+
+main $@
+
+IFS=$SAVEIFS
+
+exit 0
