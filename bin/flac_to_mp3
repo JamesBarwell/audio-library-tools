@@ -21,10 +21,10 @@ process_dir() {
     OUTPUT_DIR_NAME=$(basename ${DIR})
     OUTPUT_DIR_PATH=${OUTPUT_BASEDIR}/${OUTPUT_DIR_NAME}
 
-    echo "Creating output directory: ${OUTPUT_DIR_PATH}"
-    mkdir -p ${OUTPUT_DIR_PATH}
-
-    echo "Using lame quality setting: ${LAME_QUALITY}"
+    if [ ! -d ${OUTPUT_DIR_PATH} ]; then
+        echo "Creating output directory: ${OUTPUT_DIR_PATH}"
+        mkdir -p ${OUTPUT_DIR_PATH}
+    fi
 
     for INPUT_FILEPATH in ${INPUT_FILES}; do
         INPUT_FILENAME=${INPUT_FILEPATH##*/}
@@ -78,9 +78,13 @@ main() {
         exit 1
     fi
 
+    echo "Using lame quality setting: ${LAME_QUALITY}"
+
     for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
         process_dir ${DIR} ${OUTPUT_DIR} ${LAME_QUALITY}
     done
+
+    echo "Complete"
 }
 
 main $@
