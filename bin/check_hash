@@ -14,30 +14,24 @@ print_usage() {
 
 process_dir() {
     DIR=$1
-    USE_DOS2UNIX=$2
 
-    pushd ${DIR}
+    pushd ${DIR} >> /dev/null
 
     HASH_FILENAME=$(find ${DIR} -type f -name '*.md5')
 
     echo "Checking hash: ${HASH_FILENAME}"
 
-    if [ "${USE_DOS2UNIX}" == 1 ]; then
-        cat ${HASH_FILENAME} | dos2unix | md5sum --check --status --warn --strict
-    else
-        cat ${HASH_FILENAME} | md5sum --check --status --warn --strict
-    fi
+    md5sum --check --status --warn --strict ${HASH_FILENAME} >> /dev/null
 
     if [ "$?" -ne "0" ]; then
-        echo "Error: hash did not match"
+        echo "Error: hash did not match for: ${DIR}"
     fi
 
-    popd
+    popd >> /dev/null
 }
 
 main() {
     INPUT_DIR_ARG=$1
-    USE_DOS2UNIX=$2
 
     if [ -z "${INPUT_DIR_ARG}" ]; then
         print_usage
@@ -52,16 +46,8 @@ main() {
         exit 1
     fi
 
-    if [ "${USE_DOS2UNIX}" == 1 ]; then
-        which dos2unix
-        if [ $? != 0 ]; then
-            echo "Error: specified to use dos2unix, but dos2unix not on path"
-            exit 1
-        fi
-    fi
-
     for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
-        process_dir ${DIR} ${USE_DOS2UNIX}
+        process_dir ${DIR}
     done
 }
 

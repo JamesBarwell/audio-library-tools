@@ -15,15 +15,32 @@ print_usage() {
 process_dir() {
     DIR=$1
 
-    CUE_COUNT=$(find ${DIR} -type f -name '*.cue' | wc -l)
+    CUE_FILENAME=$(find ${DIR} -type f -name '*.cue')
 
-    if [ "${CUE_COUNT}" -le 1 ]; then
+    echo "Checking cue: ${CUE_FILENAME}"
+
+    if [ ! -f "${CUE_FILENAME}" ]; then
         echo "No CUE file(s) found in directory: ${DIR}"
     fi
+
+    #TODO - check contents of file matches audio files
 }
 
 main() {
-    INPUT_DIR=$(readlink -f $1)
+    INPUT_DIR_ARG=$1
+
+    if [ -z "${INPUT_DIR_ARG}" ]; then
+        print_usage
+        exit 1
+    fi
+
+    INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+
+    if [ ! -d "${INPUT_DIR}" ]; then
+        echo "Input directory not found at: ${INPUT_DIR}"
+        print_usage
+        exit 1
+    fi
 
     for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
         process_dir ${DIR}

@@ -18,21 +18,44 @@ process_dir() {
     DIR=$1
     QUALITY_THRESHOLD=$2
 
-    for LOG in $(find ${DIR} -name '*.log'); do
-        echo "Checking logfile for errors: ${LOG}"
-        TRACKS=$(iconv -f UTF-16 -t UTF-8 ${LOG} | grep 'Track quality')
-        TRACKNUMBER=1
+    LOG_FILENAME=$(find ${DIR} -type f -name '*.log')
 
-        for TRACK in ${TRACKS}; do
-            echo ${TRACKNUMBER} $(echo $TRACK | awk -v quality=${QUALITY_THRESHOLD} '{print $3 < quality}')
-            (( TRACKNUMBER++ ))
-        done
-    done
+    echo "Checking log: ${LOG_FILENAME}"
+
+    if [ ! -f "${LOG_FILENAME}" ]; then
+        echo "No LOG file(s) found in directory: ${DIR}"
+        return
+    fi
+
+    set +e
+    grep -q "AccurateRip summary: All tracks accurately ripped" ${LOG_FILENAME}
+    ACCURATE_STATUS=$?
+
+    grep -q "Health status: No errors occurred" ${LOG_FILENAME}
+    HEALTH_STATUS=$?
+    set -e
+
+    if [ ${ACCURATE_STATUS} != 0 ] || [ ${HEALTH_STATUS} != 0 ]; then
+        echo "Problems found in: ${LOG_FILENAME}"
+    fi
 }
 
 main() {
-    INPUT_DIR=$(readlink -f $1)
+    INPUT_DIR_ARG=$1
     QUALITY_THRESHOLD=$2
+
+    if [ -z "${INPUT_DIR_ARG}" ]; then
+        print_usage
+        exit 1
+    fi
+
+    INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+
+    if [ ! -d "${INPUT_DIR}" ]; then
+        echo "Input directory not found at: ${INPUT_DIR}"
+        print_usage
+        exit 1
+    fi
 
     for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
         process_dir ${DIR} ${QUALITY_THRESHOLD}
