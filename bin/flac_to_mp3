@@ -40,16 +40,15 @@ process_dir() {
 
         echo "Converting ${INPUT_FILEPATH} to ${OUTPUT_FILEPATH}"
 
-        flac --stdout --silent --decode ${INPUT_FILEPATH} \
-            | lame --silent -V ${LAME_QUALITY} --vbr-new - "${OUTPUT_FILEPATH}"
-        id3v2 \
-            -t "${TRACK_TITLE}" \
-            -T "${TRACK_TRACKNUMBER}" \
-            -a "${TRACK_ARTIST}" \
-            -A "${TRACK_ALBUM}" \
-            -g "${TRACK_GENRE}" \
-            -y "${TRACK_DATE}" \
-            "${OUTPUT_FILEPATH}"
+        flac --stdout --silent --decode "${INPUT_FILEPATH}" | \
+            lame -V ${LAME_QUALITY} --add-id3v2 --pad-id3v2 --ignore-tag-errors \
+            --ta "${TRACK_ARTIST}" \
+            --tt "${TRACK_TITLE}" \
+            --tl "${TRACK_ALBUM}" \
+            --tg "${TRACK_GENRE}" \
+            --tn "${TRACK_TRACKNUMBER}" \
+            --ty "${TRACK_DATE}" \
+            - "${OUTPUT_FILEPATH}"
     done
 }
 
