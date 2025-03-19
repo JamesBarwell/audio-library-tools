@@ -1,0 +1,79 @@
+#!/bin/bash
+
+set -e
+
+SAVEIFS=${IFS}
+IFS=$(echo -en "\n\b")
+
+print_usage() {
+    echo "copy_covers: copies cover art from input to output directory hierarchy"
+    echo ""
+    echo "  How to use:"
+    echo "  copy_covers <input_directory> <output_directory> [cover-filename, default cover.jpg]"
+}
+
+process_dir() {
+    DIR=$1
+    OUTPUT_BASEDIR=$2
+    COVER_FILENAME=$3
+
+    OUTPUT_DIR_NAME=$(basename ${DIR})
+    OUTPUT_DIR_PATH=${OUTPUT_BASEDIR}/${OUTPUT_DIR_NAME}
+
+    COVER_INPUT_FILEPATH=${DIR}/cover.jpg
+    COVER_OUTPUT_FILEPATH=${OUTPUT_DIR_PATH}/cover.jpg
+
+    if [ ! -d ${OUTPUT_DIR_PATH} ]; then
+        echo "Creating output directory: ${OUTPUT_DIR_PATH}"
+        mkdir -p ${OUTPUT_DIR_PATH}
+    fi
+
+    if [ ! -f ${COVER_INPUT_FILEPATH} ]; then
+        echo "Missing cover art at: ${COVER_INPUT_FILEPATH}"
+        return
+    fi
+
+    if [ -f ${COVER_OUTPUT_FILEPATH} ]; then
+        return
+    fi
+
+    cp ${COVER_INPUT_FILEPATH} ${COVER_OUTPUT_FILEPATH}
+}
+
+main() {
+    INPUT_DIR_ARG=$1
+    OUTPUT_DIR_ARG=$2
+    COVER_FILENAME=${3:-cover.jpg}
+
+    if [ -z "${INPUT_DIR_ARG}" ] || [ -z "${OUTPUT_DIR_ARG}" ]; then
+        print_usage
+        exit 1
+    fi
+
+    INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
+    OUTPUT_DIR=$(readlink -f "${OUTPUT_DIR_ARG}")
+
+    if [ ! -d "${INPUT_DIR}" ]; then
+        echo "Input directory not found at: ${INPUT_DIR}"
+        print_usage
+        exit 1
+    fi
+
+    if [ ! -d "${OUTPUT_DIR}" ]; then
+        echo "Output directory not found at: ${OUTPUT_DIR}"
+        print_usage
+        exit 1
+    fi
+
+    echo "Copying cover art files named: ${COVER_FILENAME}"
+
+    for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
+        process_dir ${DIR} ${OUTPUT_DIR} ${COVER_FILENAME}
+    done
+
+    echo "Complete"
+}
+
+main $@
+
+IFS=${SAVEIFS}
