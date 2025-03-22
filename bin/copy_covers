@@ -13,62 +13,58 @@ print_usage() {
 }
 
 process_dir() {
-    DIR=$1
-    OUTPUT_BASEDIR=$2
-    COVER_FILENAME=$3
+    process_dir_abs=$1
+    output_dir_abs=$2
+    cover_filename=$3
 
-    OUTPUT_DIR_NAME=$(basename ${DIR})
-    OUTPUT_DIR_PATH=${OUTPUT_BASEDIR}/${OUTPUT_DIR_NAME}
+    cover_input_filepath=${process_dir_abs}/cover.jpg
+    cover_output_filepath=${output_dir_abs}/cover.jpg
 
-    COVER_INPUT_FILEPATH=${DIR}/cover.jpg
-    COVER_OUTPUT_FILEPATH=${OUTPUT_DIR_PATH}/cover.jpg
-
-    if [ ! -d ${OUTPUT_DIR_PATH} ]; then
-        echo "Creating output directory: ${OUTPUT_DIR_PATH}"
-        mkdir -p ${OUTPUT_DIR_PATH}
-    fi
-
-    if [ ! -f ${COVER_INPUT_FILEPATH} ]; then
-        echo "Missing cover art at: ${COVER_INPUT_FILEPATH}"
+    if [ ! -f ${cover_input_filepath} ]; then
+        echo "Directory contains no cover files, skipping: ${process_dir_abs}"
         return
     fi
 
-    if [ -f ${COVER_OUTPUT_FILEPATH} ]; then
-        return
+    if [ ! -d ${output_dir_abs} ]; then
+        echo "Creating output directory: ${output_dir_abs}"
+        mkdir -p ${output_dir_abs}
     fi
 
-    cp ${COVER_INPUT_FILEPATH} ${COVER_OUTPUT_FILEPATH}
+    echo "Copying cover to: ${cover_output_filepath}"
+    cp ${cover_input_filepath} ${cover_output_filepath}
 }
 
 main() {
-    INPUT_DIR_ARG=$1
-    OUTPUT_DIR_ARG=$2
-    COVER_FILENAME=${3:-cover.jpg}
+    input_basedir_arg=$1
+    output_basedir_arg=$2
+    cover_filename=${3:-cover.jpg}
 
-    if [ -z "${INPUT_DIR_ARG}" ] || [ -z "${OUTPUT_DIR_ARG}" ]; then
+    if [ -z "${input_basedir_arg}" ] || [ -z "${output_basedir_arg}" ]; then
         print_usage
         exit 1
     fi
 
-    INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
-    OUTPUT_DIR=$(readlink -f "${OUTPUT_DIR_ARG}")
+    input_basedir=$(readlink -f "${input_basedir_arg}")
+    output_basedir=$(readlink -f "${output_basedir_arg}")
 
-    if [ ! -d "${INPUT_DIR}" ]; then
-        echo "Input directory not found at: ${INPUT_DIR}"
+    if [ ! -d "${input_basedir}" ]; then
+        echo "Input directory not found at: ${input_basedir}"
         print_usage
         exit 1
     fi
 
-    if [ ! -d "${OUTPUT_DIR}" ]; then
-        echo "Output directory not found at: ${OUTPUT_DIR}"
+    if [ ! -d "${output_basedir}" ]; then
+        echo "Output directory not found at: ${output_basedir}"
         print_usage
         exit 1
     fi
 
-    echo "Copying cover art files named: ${COVER_FILENAME}"
+    echo "Copying cover art files named: ${cover_filename}"
 
-    for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
-        process_dir ${DIR} ${OUTPUT_DIR} ${COVER_FILENAME}
+    for process_dir_abs in $(find ${input_basedir} -type d); do
+        dir_relative_to_input_basedir=${process_dir_abs#$input_basedir}
+        output_dir_abs=${output_basedir}${dir_relative_to_input_basedir}
+        process_dir ${process_dir_abs} ${output_dir_abs} ${ogg_quality}
     done
 
     echo "Complete"

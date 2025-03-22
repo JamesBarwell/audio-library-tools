@@ -13,84 +13,91 @@ print_usage() {
 }
 
 process_dir() {
-    DIR=$1
-    OUTPUT_BASEDIR=$2
-    LAME_QUALITY=$3
+    process_dir_abs=$1
+    output_dir_abs=$2
+    lame_quality=$3
 
-    INPUT_FILES=$(find ${DIR} -type f -name "*.flac" | sort --numeric-sort)
-    OUTPUT_DIR_NAME=$(basename ${DIR})
-    OUTPUT_DIR_PATH=${OUTPUT_BASEDIR}/${OUTPUT_DIR_NAME}
-    OUTPUT_METADATA_PATH=${OUTPUT_DIR_PATH}/.converted
+    input_files=$(find ${process_dir_abs} -maxdepth 1 -type f -name "*.flac" | sort --numeric-sort)
+    input_files_count=$(find ${process_dir_abs} -maxdepth 1 -type f -name "*.flac" | sort --numeric-sort | wc -l)
 
-    if [ ! -d ${OUTPUT_DIR_PATH} ]; then
-        echo "Creating output directory: ${OUTPUT_DIR_PATH}"
-        mkdir -p ${OUTPUT_DIR_PATH}
-    fi
+    output_metadata_path=${output_dir_abs}/.converted
 
-    if [ -f ${OUTPUT_METADATA_PATH} ]; then
-        echo "Found metadata at ${OUTPUT_METADATA_PATH}, skipping..."
+    if [ "${input_files_count}" -eq 0 ]; then
+        echo "Directory contains no flac files, skipping: ${process_dir_abs}"
         return
     fi
 
-    for INPUT_FILEPATH in ${INPUT_FILES}; do
-        INPUT_FILENAME=${INPUT_FILEPATH##*/}
-        OUTPUT_FILENAME="${INPUT_FILENAME%flac}mp3"
-        OUTPUT_FILEPATH="${OUTPUT_DIR_PATH}/${OUTPUT_FILENAME}"
+    if [ -f ${output_metadata_path} ]; then
+        echo "Found metadata at output directory, skipping: ${output_metadata_path}, skipping..."
+        return
+    fi
 
-        TRACK_ARTIST=$(metaflac "${INPUT_FILEPATH}" --show-tag=ARTIST | sed s/.*=//g)
-        TRACK_TITLE=$(metaflac "${INPUT_FILEPATH}" --show-tag=TITLE | sed s/.*=//g)
-        TRACK_ALBUM=$(metaflac "${INPUT_FILEPATH}" --show-tag=ALBUM | sed s/.*=//g)
-        TRACK_GENRE=$(metaflac "${INPUT_FILEPATH}" --show-tag=GENRE | sed s/.*=//g)
-        TRACK_TRACKNUMBER=$(metaflac "${INPUT_FILEPATH}" --show-tag=TRACKNUMBER | sed s/.*=//g)
-        TRACK_DATE=$(metaflac "${INPUT_FILEPATH}" --show-tag=DATE | sed s/.*=//g)
+    if [ ! -d ${output_dir_abs} ]; then
+        echo "Creating output directory: ${output_dir_abs}"
+        mkdir -p ${output_dir_abs}
+    fi
 
-        echo "Converting ${INPUT_FILEPATH} to ${OUTPUT_FILEPATH}"
+    for input_filepath in ${input_files}; do
+        input_filename=${input_filepath##*/}
+        output_filename="${input_filename%flac}mp3"
+        output_filepath="${output_dir_abs}/${output_filename}"
 
-        flac --stdout --silent --decode "${INPUT_FILEPATH}" | \
-            lame -V ${LAME_QUALITY} --add-id3v2 --pad-id3v2 --ignore-tag-errors \
-            --ta "${TRACK_ARTIST}" \
-            --tt "${TRACK_TITLE}" \
-            --tl "${TRACK_ALBUM}" \
-            --tg "${TRACK_GENRE}" \
-            --tn "${TRACK_TRACKNUMBER}" \
-            --ty "${TRACK_DATE}" \
-            - "${OUTPUT_FILEPATH}"
+        track_artist=$(metaflac "${input_filepath}" --show-tag=ARTIST | sed s/.*=//g)
+        track_title=$(metaflac "${input_filepath}" --show-tag=TITLE | sed s/.*=//g)
+        track_album=$(metaflac "${input_filepath}" --show-tag=ALBUM | sed s/.*=//g)
+        track_genre=$(metaflac "${input_filepath}" --show-tag=GENRE | sed s/.*=//g)
+        track_tracknumber=$(metaflac "${input_filepath}" --show-tag=TRACKNUMBER | sed s/.*=//g)
+        track_date=$(metaflac "${input_filepath}" --show-tag=DATE | sed s/.*=//g)
+
+        echo "Converting ${input_filepath} to ${output_filepath}"
+
+        flac --stdout --silent --decode "${input_filepath}" | \
+            lame -V ${lame_quality} --add-id3v2 --pad-id3v2 --ignore-tag-errors \
+            --ta "${track_artist}" \
+            --tt "${track_title}" \
+            --tl "${track_album}" \
+            --tg "${track_genre}" \
+            --tn "${track_tracknumber}" \
+            --ty "${track_date}" \
+            - "${output_filepath}"
     done
 
-    if [ ! -f ${OUTPUT_METADATA_PATH} ]; then
-        echo "Converted from flac to mp3 on: $(date -Is)" > ${OUTPUT_METADATA_PATH}
+    if [ ! -f ${output_metadata_path} ]; then
+        echo "Converted from flac to mp3 on: $(date -Is)" > ${output_metadata_path}
     fi
 }
 
 main() {
-    INPUT_DIR_ARG=$1
-    OUTPUT_DIR_ARG=$2
-    LAME_QUALITY=${3:-2}
+    input_basedir_arg=$1
+    output_basedir_arg=$2
+    lame_quality=${3:-2}
 
-    if [ -z "${INPUT_DIR_ARG}" ] || [ -z "${OUTPUT_DIR_ARG}" ]; then
+    if [ -z "${input_basedir_arg}" ] || [ -z "${output_basedir_arg}" ]; then
         print_usage
         exit 1
     fi
 
-    INPUT_DIR=$(readlink -f "${INPUT_DIR_ARG}")
-    OUTPUT_DIR=$(readlink -f "${OUTPUT_DIR_ARG}")
+    input_basedir=$(readlink -f "${input_basedir_arg}")
+    output_basedir=$(readlink -f "${output_basedir_arg}")
 
-    if [ ! -d "${INPUT_DIR}" ]; then
-        echo "Input directory not found at: ${INPUT_DIR}"
+    if [ ! -d "${input_basedir}" ]; then
+        echo "Input directory not found at: ${input_basedir}"
         print_usage
         exit 1
     fi
 
-    if [ ! -d "${OUTPUT_DIR}" ]; then
-        echo "Output directory not found at: ${OUTPUT_DIR}"
+    if [ ! -d "${output_basedir}" ]; then
+        echo "Output directory not found at: ${output_basedir}"
         print_usage
         exit 1
     fi
 
-    echo "Using lame quality setting: ${LAME_QUALITY}"
+    echo "Using mp3 quality setting: ${lame_quality}"
 
-    for DIR in $(find ${INPUT_DIR} -links 2 -type d); do
-        process_dir ${DIR} ${OUTPUT_DIR} ${LAME_QUALITY}
+    for process_dir_abs in $(find ${input_basedir} -type d); do
+        dir_relative_to_input_basedir=${process_dir_abs#$input_basedir}
+        output_dir_abs=${output_basedir}${dir_relative_to_input_basedir}
+        process_dir ${process_dir_abs} ${output_dir_abs} ${lame_quality}
     done
 
     echo "Complete"
